@@ -25,6 +25,8 @@
 #include "libs/libs.h"
 
 #include <algorithm>
+#include <filesystem>
+#include <chrono>
 #include <array>
 #include <cstdlib>
 #include <list>
@@ -209,7 +211,7 @@ public:
 	void Prepare(uint64_t request_id, Graphics::CommandBuffer& buffer);
 	void Complete(uint64_t request_id);
 	void WaitForSubmitSlot();
-	bool Flip(uint32_t micros);
+	bool Flip(uint32_t micros, bool between_vblanks = false);
 	void GetFlipStatus(VideoOutConfig& cfg, VideoOutFlipStatus& out);
 	void Wait(VideoOutConfig& cfg, int index);
 
@@ -504,6 +506,40 @@ static bool IsFlipDueLocked(const VideoOutConfig& cfg, uint64_t generation, bool
 	const int interval = cfg.flip_rate + 1;
 
 	return interval <= 1 || (cfg.vblank_status.count % static_cast<uint64_t>(interval)) == 0;
+}
+
+// KYTY_VRR=1: a frame the game finishes between two vblanks is shown at once instead of at the
+// next vblank, like a variable-refresh display. The vblanks keep their rate (and the game's clock
+// with them); at most one flip per vblank period keeps the game at no more than the vblank rate.
+// Only uncapped flips qualify: the game's own flip rate and KYTY_FLIP_RATE still wait for vblanks.
+// A file named vrr.flag in the working directory also enables it while it exists (A/B testing).
+static bool VrrEnabled() {
+	static const bool from_environment = [] {
+		const char* value = std::getenv("KYTY_VRR");
+		return value != nullptr && std::atoi(value) != 0;
+	}();
+	if (from_environment) {
+		return true;
+	}
+	static bool enabled   = false;
+	static auto next_poll = std::chrono::steady_clock::time_point {};
+	if (const auto now = std::chrono::steady_clock::now(); now >= next_poll) {
+		next_poll = now + std::chrono::seconds(1);
+		std::error_code error;
+		enabled = std::filesystem::exists("vrr.flag", error);
+	}
+	return enabled;
+}
+
+static bool IsFlipDueBetweenVblanksLocked(const VideoOutConfig& cfg, uint64_t generation,
+                                          bool capped) {
+	if (!cfg.opened || cfg.closing || cfg.generation != generation) {
+		return false;
+	}
+	if ((capped && FlipRateFloor() > 0) || cfg.flip_rate + 1 > 1) {
+		return false;
+	}
+	return cfg.last_flip_vblank != cfg.vblank_status.count;
 }
 
 static bool IsValidBufferIndex(int index) {
@@ -806,7 +842,18 @@ void VideoOutDriver::Impl::PresentThread(std::stop_token token) {
 	int64_t total_wait = 0;
 	while (!token.stop_requested()) {
 		const auto sleep_begin = Common::Timer::QueryPerformanceCounter();
-		if (total_wait > 0) {
+		if (total_wait > 0 && VrrEnabled() && !m_presenter.IsGuestPaused()) {
+			const auto deadline = sleep_begin + static_cast<uint64_t>(total_wait);
+			for (auto now = sleep_begin; now < deadline && !token.stop_requested();
+			     now = Common::Timer::QueryPerformanceCounter()) {
+				if (m_flip_queue.Flip(0, true)) {
+					continue;
+				}
+				const auto remaining_us = ((deadline - now) * 1000000u + frequency - 1) / frequency;
+				Common::Thread::SleepMicro(
+				    static_cast<uint32_t>(std::clamp<uint64_t>(remaining_us, 1, 250)));
+			}
+		} else if (total_wait > 0) {
 			const auto remaining_us =
 			    (static_cast<uint64_t>(total_wait) * 1000000u + frequency - 1) / frequency;
 			Common::Thread::SleepMicro(static_cast<uint32_t>(
@@ -1106,7 +1153,7 @@ void FlipQueue::Wait(VideoOutConfig& cfg, int index) {
 	}
 }
 
-bool FlipQueue::Flip(uint32_t micros) {
+bool FlipQueue::Flip(uint32_t micros, bool between_vblanks) {
 	KYTY_PROFILER_BLOCK("FlipQueue::Flip");
 
 	m_mutex.Lock();
@@ -1131,7 +1178,8 @@ bool FlipQueue::Flip(uint32_t micros) {
 
 	r.cfg->mutex.Lock();
 	const bool capped = r.frame != nullptr && Graphics::Presenter::FlipRateApplies(*r.frame);
-	if (!IsFlipDueLocked(*r.cfg, r.generation, capped)) {
+	if (between_vblanks ? !IsFlipDueBetweenVblanksLocked(*r.cfg, r.generation, capped)
+	                    : !IsFlipDueLocked(*r.cfg, r.generation, capped)) {
 		r.cfg->mutex.Unlock();
 		Common::LockGuard queue_lock(m_mutex);
 		m_processing = false;
