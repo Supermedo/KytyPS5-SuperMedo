@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -448,6 +449,25 @@ bool Audio::QueueSdlAudio(PortOut* port, const void* data, bool blocking) {
 				break;
 			}
 			Common::Thread::SleepMicro(1000);
+		}
+	} else {
+		// Non-blocking submissions (AudioOut2 async pushes) are paced by the context's simulated queue
+		// and the host clock, not by the device: a device that plays slightly slower than that clock
+		// kept the surplus queued for good, and the sound fell further behind the picture the longer the
+		// game ran (half a second after a long session). Past 100 ms queued, this buffer is dropped.
+		constexpr uint64_t max_latency_us   = 100000;
+		const uint64_t     bytes_per_second = static_cast<uint64_t>(port->audio_spec.freq) *
+		                                  port->audio_spec.channels *
+		                                  (SDL_AUDIO_BITSIZE(port->audio_spec.format) / 8u);
+		if (SDL_GetQueuedAudioSize(port->audio_device) > bytes_per_second * max_latency_us / 1000000u) {
+			static std::atomic<uint64_t> dropped {0};
+			const auto                   count = ++dropped;
+			if (count == 1 || count % 100 == 0) {
+				std::printf("Audio: %llu buffers dropped (more than 100 ms queued for the device)\n",
+				            static_cast<unsigned long long>(count));
+				std::fflush(stdout);
+			}
+			return true;
 		}
 	}
 

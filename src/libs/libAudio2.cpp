@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstdio>
 #include <cstring>
 #include <vector>
 
@@ -564,6 +565,12 @@ int KYTY_SYSV_ABI AudioOut2ContextAdvance(AudioOut2ContextHandle ctx) {
 
 int KYTY_SYSV_ABI AudioOut2ContextPush(AudioOut2ContextHandle ctx, uint32_t blocking) {
 	uint32_t sleep_micros = audioout2_grain_micros(512);
+	// Once per mode: which pacing the game's pushes get (the device queue or the simulated one).
+	static std::atomic<bool> logged[2] {};
+	if (!logged[blocking != 0 ? 1 : 0].exchange(true)) {
+		std::printf("AudioOut2: %s pushes\n", blocking != 0 ? "blocking" : "non-blocking");
+		std::fflush(stdout);
+	}
 
 	for (;;) {
 		// Only a synchronous submission carrying PCM to a real device can rely on the SDL queue for

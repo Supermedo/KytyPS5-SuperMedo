@@ -2147,7 +2147,13 @@ int KYTY_SYSV_ABI UmtxOp(volatile void* address, int operation, uint64_t value,
 					*GetErrorAddr() = POSIX_EINVAL;
 					return -1;
 				}
-				EXIT("Valid _umtx_op timed waits are not implemented\n");
+				const auto max_ns = std::chrono::nanoseconds::max().count();
+				const auto timeout_ns = duration.tv_sec > (max_ns - duration.tv_nsec) / 1000000000
+				                            ? max_ns
+				                            : duration.tv_sec * 1000000000 + duration.tv_nsec;
+				return POSIX_CALL(LibKernel::SyncOnAddress::Wait64(
+				    static_cast<volatile uint64_t*>(address), value, std::chrono::nanoseconds(timeout_ns),
+				    LibKernel::KernelDispatchPendingSignalForCurrentThread));
 			}
 			return POSIX_CALL(LibKernel::SyncOnAddress::Wait64(
 			    static_cast<volatile uint64_t*>(address), value, nullptr,

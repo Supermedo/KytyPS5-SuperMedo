@@ -12,5 +12,5 @@
 #elif defined(KYTY_FORK_BUILD)
 #define KYTY_BUILD_LABEL "Fork build " KYTY_BUILD_REPOSITORY " " KYTY_GIT_HASH
 #else
-#define KYTY_BUILD_LABEL "Source build " KYTY_GIT_HASH
+#define KYTY_BUILD_LABEL "KytyPS5 SuperMedo " KYTY_GIT_HASH
 #endif

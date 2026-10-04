@@ -1617,6 +1617,10 @@ private:
 			}
 			next_addr = region_end;
 		}
+		// The room left to the driver stays reserved until vkCreateDevice (driver-address-hole.h).
+		if (ceiling != 0) {
+			LocalDriverHole::Hold(guest_end, 0x10000000000ull);
+		}
 #else
 		const std::array<std::pair<uint64_t, uint64_t>, 3> regions {{
 		    {HOST_SYSTEM_MANAGED_MIN, HOST_SYSTEM_MANAGED_MAX + 1u},

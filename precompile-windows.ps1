@@ -43,7 +43,8 @@ if (!(Test-Path $Exe)) { throw "missing $Exe; build it with build-windows.cmd ky
 # The game run-windows.ps1 was given last, else the default folder.
 if (!$Game -and (Test-Path "$PSScriptRoot\game-path.txt")) { $Game = (Get-Content "$PSScriptRoot\game-path.txt" -Raw).Trim() }
 if (!$Game) { $Game = "$env:USERPROFILE\Documents\PPSA01341-app0" }
-if (!(Test-Path "$Game\sce_sys\param.json")) { throw "no sce_sys\param.json in $Game (-Game <folder>, or start the game once to choose it)" }
+# -LiteralPath: a game folder name may hold [ ], which Test-Path reads as a wildcard set.
+if (!(Test-Path -LiteralPath "$Game\sce_sys\param.json")) { throw "no sce_sys\param.json in $Game (-Game <folder>, or start the game once to choose it)" }
 if (!(Test-Path $Seeds)) {
 	# Every shader the game ships, with the pipelines it draws them with (from the game files).
 	New-Item -ItemType Directory -Force (Split-Path $Seeds) | Out-Null

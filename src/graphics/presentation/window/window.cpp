@@ -196,7 +196,7 @@ std::unique_ptr<WindowContext> g_window;
 
 } // namespace
 
-constexpr const char* KYTY_SDL_WINDOW_CAPTION = "Game";
+constexpr const char* KYTY_SDL_WINDOW_CAPTION = "KytyPS5 SuperMedo";
 constexpr int KYTY_SDL_WINDOWPOS_CENTERED = SDL_WINDOWPOS_CENTERED; /*NOLINT(hicpp-signed-bitwise)*/
 
 static void SetPause(WindowLoopState& game, bool flag) {
@@ -359,15 +359,16 @@ static void GameEventController([[maybe_unused]] const EventController& f) {
 #endif
 
 	if (f.added) {
-		auto* pad = SDL_GameControllerOpen(f.id);
-		EXIT_NOT_IMPLEMENTED(pad == nullptr);
-		int id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad));
-		Controller::Connect(id);
+		// The pad may already be gone again when its arrival is handled: then it is not connected.
+		if (auto* pad = SDL_GameControllerOpen(f.id); pad != nullptr) {
+			int id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad));
+			Controller::Connect(id);
+		}
 	}
 
 	if (f.removed) {
 		Controller::Disconnect(f.id);
-		SDL_GameControllerClose(SDL_GameControllerFromInstanceID(f.id));
+		if (auto* pad = SDL_GameControllerFromInstanceID(f.id); pad != nullptr) SDL_GameControllerClose(pad);
 	}
 
 	if (f.down || f.up) {

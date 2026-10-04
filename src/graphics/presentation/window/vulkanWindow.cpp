@@ -38,6 +38,7 @@
 #include "libs/controller.h"
 #include "loader/systemContent.h"
 #include "frame-gen.h"
+#include "driver-address-hole.h"
 #ifdef KYTY_LOCAL_VULKAN_RECORDING
 #include "vulkan-recording.h"
 #endif
@@ -888,6 +889,9 @@ static vk::Device VulkanCreateDevice(vk::PhysicalDevice physical_device, const V
 	create_info.enabledExtensionCount   = static_cast<uint32_t>(device_extensions.size());
 	create_info.ppEnabledExtensionNames = device_extensions.data();
 	create_info.pEnabledFeatures        = &device_features;
+
+	// The address space held for the driver since the guest reservation (KYTY_FRAMEGEN).
+	LocalDriverHole::Release();
 
 	vk::Device device = nullptr;
 

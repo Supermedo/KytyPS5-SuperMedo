@@ -1,4 +1,5 @@
 #include "kernel/memory.h"
+#include "driver-address-hole.h"
 #include "live-census.h"
 #include "live-counters.h"
 #include "live-trace.h"
