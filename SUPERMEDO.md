@@ -4,6 +4,20 @@
 built on [chenxiao07's Demon's Souls branch](https://github.com/chenxiao07/KytyPS5) for Windows, with
 a game launcher and fixes for playing on Windows PCs.
 
+**[Download the latest release](https://github.com/Supermedo/KytyPS5-SuperMedo/releases/latest)**
+
+![Demon's Souls with DLSS Frame Generation: 53 FPS shown, 27 FPS from the game](docs/images/demons-souls-frame-generation.jpg)
+*Demon's Souls with DLSS Frame Generation 2x (RTX 5080, Ryzen 7 7800X3D).*
+
+## Screenshots
+
+| | |
+|:---:|:---:|
+| ![Game library and display settings](docs/images/launcher-display.png) | ![Performance settings](docs/images/launcher-performance.png) |
+| Game library and display settings | Optimized build, speed-ups and Frame Generation |
+| ![Shader status](docs/images/launcher-shaders.png) | ![Demon's Souls effects](docs/images/launcher-effects.png) |
+| Shader status and full precompile | Demon's Souls effect presets with their measured gains |
+
 > [!IMPORTANT]
 > Not affiliated with Sony Interactive Entertainment or PlayStation. No games, game files, system
 > software or NVIDIA files are included. Use only game files you have obtained legally.

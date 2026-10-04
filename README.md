@@ -2,7 +2,13 @@
 
 > **This is the SuperMedo version of KytyPS5**: a Windows build with the Kyty Launcher and fixes,
 > based on chenxiao07's Demon's Souls branch. What it adds, how to use a release and how to build it:
-> **[SUPERMEDO.md](SUPERMEDO.md)**. The rest of this page is the upstream KytyPS5 README.
+> **[SUPERMEDO.md](SUPERMEDO.md)**. **[Download](https://github.com/Supermedo/KytyPS5-SuperMedo/releases/latest)**.
+> The rest of this page is the upstream KytyPS5 README.
+
+<p align="center">
+  <img src="docs/images/demons-souls-frame-generation.jpg" width="49%" alt="Demon's Souls with DLSS Frame Generation">
+  <img src="docs/images/launcher-display.png" width="49%" alt="Kyty Launcher">
+</p>
 
 [![Build KytyPS5 (Windows)](https://img.shields.io/github/actions/workflow/status/KytyPS5/KytyPS5/build.yml?branch=main&event=push&label=Build%20KytyPS5%20%28Windows%29)](https://github.com/KytyPS5/KytyPS5/actions/workflows/build.yml)
 [![Build KytyPS5 (Linux)](https://img.shields.io/github/actions/workflow/status/KytyPS5/KytyPS5/build.yml?branch=main&event=push&label=Build%20KytyPS5%20%28Linux%29)](https://github.com/KytyPS5/KytyPS5/actions/workflows/build.yml)
