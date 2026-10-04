@@ -26,3 +26,7 @@ _PipelineCache/
 tools/launcher/bin/
 tools/launcher/obj/
 tools/launcher/publish/
+
+# Editor and assistant settings (local only)
+/.claude/
+/.vscode/
