@@ -9,3 +9,20 @@ _PipelineCache/
 /game-path.txt
 /no-precompile-prompt.txt
 /launcher-settings.json
+
+# Local play files (never published): saves, logs, profiles, built programs, personal launch scripts
+/_SaveData/
+/*.log
+/*.profraw
+/chen_last_run_log.txt
+/pgo_train_log.txt
+/KytyLauncher.exe
+/SuperMedo.exe
+/Run Demons Souls*.bat
+/Play Demons Souls.bat
+/_fgtest.bat
+/streamline/
+# Kyty Launcher build output
+tools/launcher/bin/
+tools/launcher/obj/
+tools/launcher/publish/
