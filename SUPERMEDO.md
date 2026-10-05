@@ -47,7 +47,9 @@ a game launcher and fixes for playing on Windows PCs.
   the game (`src/libs/controller.cpp`, `window.cpp`).
 - `_umtx_op` waits with a timeout, from KytyPS5 upstream (`src/libs/libKernel.cpp`,
   `src/kernel/syncOnAddress.*`): needed by God of War Sons of Sparta.
-- `precompile-windows.ps1` works with game folders whose names contain `[` `]`.
+- `precompile-windows.ps1` works with game folders whose names contain `[` `]`, and without Python in a
+  release: the shader list (`precompile.py seeds`) is packed as `kyty_seeds.exe`
+  (`tools/local/static-precompile/build-seeds-exe.ps1`).
 
 **Game notes**
 - *Demon's Souls* (PPSA01341 01.007.000): the game this branch is tuned for.
@@ -60,6 +62,9 @@ a game launcher and fixes for playing on Windows PCs.
 2. Install the Vulkan-capable graphics driver for your card (NVIDIA RTX with 12 GB or more recommended).
 3. Start `KytyLauncher.exe`, choose **Add game...** and pick the game folder (the one with `eboot.bin`
    and `sce_sys`), then **Play**.
+4. Demon's Souls: the first **Play** reads the game's list of shaders from your game files and prepares
+   them for your graphics card (about two minutes, once; `kyty_seeds.exe` and `kyty_shader_precompile.exe`).
+   For no first-time stutters at all, run **Shaders → Precompile all shaders** once (about an hour).
 
 Requirements: Windows 10/11 64-bit, a CPU with AVX2, 32 GB of RAM (with a system-managed page file).
 
@@ -77,6 +82,8 @@ dotnet publish tools\launcher\KytyLauncher.csproj -c Release -r win-x64 -p:Publi
 ```
 
 Put `KytyLauncher.exe` in the emulator folder (next to `_Build`, or next to `kyty_emulator.exe`).
+The shader tools: `build-windows.cmd kyty_shader_precompile`, and
+`tools\local\static-precompile\build-seeds-exe.ps1` for `kyty_seeds.exe` (needs Python 3).
 For Frame Generation in a source build, unpack the Streamline SDK to `_Build\deps\streamline\sdk`
 before configuring.
 

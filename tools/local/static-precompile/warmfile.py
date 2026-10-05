@@ -12,11 +12,13 @@ from __future__ import annotations
 import hashlib
 import re
 import struct
+import sys
 from pathlib import Path
 
 import numpy as np
 
-REPO = Path(__file__).resolve().parents[3]
+# Packed as kyty_seeds.exe (PyInstaller): the headers read below are bundled at the same relative paths.
+REPO = Path(sys._MEIPASS) if getattr(sys, 'frozen', False) else Path(__file__).resolve().parents[3]
 CACHE_ROOT = REPO / '_PipelineCache' / 'warmup-v2'
 OUT = REPO / '_Build' / 're' / 'agent-warm'
 

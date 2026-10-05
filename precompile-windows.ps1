@@ -48,12 +48,15 @@ if (!(Test-Path -LiteralPath "$Game\sce_sys\param.json")) { throw "no sce_sys\pa
 if (!(Test-Path $Seeds)) {
 	# Every shader the game ships, with the pipelines it draws them with (from the game files).
 	New-Item -ItemType Directory -Force (Split-Path $Seeds) | Out-Null
-	python "$PSScriptRoot\tools\local\static-precompile\precompile.py" --game $Game seeds $Seeds
-	if ($LASTEXITCODE) { throw 'precompile.py seeds failed' }
+	# A release has it packed as kyty_seeds.exe (tools\local\static-precompile\build-seeds-exe.ps1): no Python needed.
+	$packed = @("$PSScriptRoot\kyty_seeds.exe", "$PSScriptRoot\_Build\seeds-dist\kyty_seeds.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+	if ($packed) { & $packed --game $Game seeds $Seeds }
+	else { python "$PSScriptRoot\tools\local\static-precompile\precompile.py" --game $Game seeds $Seeds }
+	if ($LASTEXITCODE) { throw 'making the seed file failed' }
 }
 if ($Affinity -eq 0) {
-	$config = if (Test-Path "$PSScriptRoot\launch.json") { "$PSScriptRoot\launch.json" } else { "$PSScriptRoot\_Build\release-stage1-20260927\launch.json" }
-	foreach ($cpu in (Get-Content $config -Raw | ConvertFrom-Json).cpu_affinity) { $Affinity = $Affinity -bor ([int64]1 -shl [int]$cpu) }
+	$config = @("$PSScriptRoot\launch.json", "$PSScriptRoot\_Build\release-stage1-20260927\launch.json") | Where-Object { Test-Path $_ } | Select-Object -First 1
+	if ($config) { foreach ($cpu in (Get-Content $config -Raw | ConvertFrom-Json).cpu_affinity) { $Affinity = $Affinity -bor ([int64]1 -shl [int]$cpu) } }
 }
 $all = if ([Environment]::ProcessorCount -ge 64) { [int64]-1 } else { ([int64]1 -shl [Environment]::ProcessorCount) - 1 }
 $mask = $Affinity -band $all

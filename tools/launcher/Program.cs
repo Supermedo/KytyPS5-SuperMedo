@@ -867,11 +867,32 @@ public sealed class MainForm : Form {
 		return null;
 	}
 
-	bool ShadersSupported(GameEntry game) =>
-	    game != null && Titles.IsDemonsSouls(game) && ShaderTool() != null && SeedsPath() != null;
+	// Makes the shader list from the game files (precompile.py packed by build-seeds-exe.ps1): a release
+	// ships it instead of the list, which is made from the player's own game.
+	string SeedMaker() {
+		foreach (var relative in new[] { "kyty_seeds.exe", @"_Build\seeds-dist\kyty_seeds.exe" }) {
+			var path = Path.Combine(Root, relative);
+			if (File.Exists(path)) return path;
+		}
+		return null;
+	}
 
-	async Task<(int Code, string Output)> RunTool(string arguments) {
-		var start = new ProcessStartInfo(ShaderTool(), arguments) {
+	bool ShadersSupported(GameEntry game) =>
+	    game != null && Titles.IsDemonsSouls(game) && ShaderTool() != null && (SeedsPath() != null || SeedMaker() != null);
+
+	// The shader list, made first when it is missing (about a minute).
+	async Task<bool> MakeSeeds(GameEntry game) {
+		if (SeedsPath() != null) return true;
+		var target = Path.Combine(Root, "_Build", "static-precompile", "seeds.seeds");
+		Directory.CreateDirectory(Path.GetDirectoryName(target));
+		var (code, _) = await RunProcess(SeedMaker(), $"--game {Quote(game.Folder)} seeds {Quote(target)}");
+		return code == 0 && SeedsPath() != null;
+	}
+
+	Task<(int Code, string Output)> RunTool(string arguments) => RunProcess(ShaderTool(), arguments);
+
+	async Task<(int Code, string Output)> RunProcess(string exe, string arguments) {
+		var start = new ProcessStartInfo(exe, arguments) {
 			WorkingDirectory = Root, UseShellExecute = false, CreateNoWindow = true,
 			RedirectStandardOutput = true, RedirectStandardError = true,
 		};
@@ -887,6 +908,7 @@ public sealed class MainForm : Form {
 
 	// The status of both stores for this graphics card and driver ("inputs current|stale", "static cache current|stale").
 	async Task<(bool Inputs, bool Cache)?> ShaderStatus(GameEntry game) {
+		if (SeedsPath() == null) return (false, false); // nothing made yet: the list comes first
 		try {
 			var (code, output) = await RunTool($"--game {Quote(game.Folder)} --seeds {Quote(SeedsPath())} --status");
 			if (code != 0) return null;
@@ -925,8 +947,10 @@ public sealed class MainForm : Form {
 			inputsStatus.Text = cacheStatus.Text = "Could not be checked";
 			return;
 		}
-		Mark(inputsStatus, s.Inputs, "Ready for this graphics card and driver", "Will be made at the next start (about a minute)");
-		Mark(cacheStatus, s.Cache, "Done for this graphics card and driver", "Not done for this graphics card and driver");
+		var first = SeedsPath() == null;
+		Mark(inputsStatus, s.Inputs, "Ready for this graphics card and driver",
+		     first ? "Will be made at the next start (about two minutes, once)" : "Will be made at the next start (about a minute)");
+		Mark(cacheStatus, s.Cache, "Done for this graphics card and driver", first ? "Not done yet" : "Not done for this graphics card and driver");
 	}
 
 	static void Mark(Label label, bool good, string yes, string no) {
@@ -1116,9 +1140,17 @@ public sealed class MainForm : Form {
 		status.Text      = "Checking the shaders...";
 		var state = await ShaderStatus(game);
 		if (state is not { Inputs: false }) return;
-		status.Text = "Preparing the shaders for this graphics card (after a driver update; about a minute)...";
+		if (SeedsPath() == null) {
+			status.Text = "Reading the game's list of shaders (first start only, about a minute)...";
+			if (!await MakeSeeds(game)) {
+				status.Text = "Reading the game's shaders failed; starting without the background preparation.";
+				return;
+			}
+		}
+		status.Text = "Preparing the shaders for this graphics card (first start or after a driver update; about a minute)...";
 		var (code, _) = await RunTool($"--game {Quote(game.Folder)} --seeds {Quote(SeedsPath())} --no-pipelines --static-inputs --threads {Environment.ProcessorCount}");
 		if (code != 0) status.Text = "Preparing the shaders failed; starting without the background preparation.";
+		else Mark(inputsStatus, true, "Ready for this graphics card and driver", "");
 	}
 
 	void Launch(GameEntry game) {
